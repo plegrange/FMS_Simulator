@@ -11,7 +11,7 @@ public class Robot {
     private int bufferCapacity;
     private Queue<Part> inBufferQueue;
     private Part partInProcessing;
-    protected String busy = "BUSY", ready = "READY", blocked = "BLOCKED", waiting = "WAITING", failure = "FAILURE";
+    protected String busy = "BUSY", ready = "READY", blocked = "BLOCKED", waiting = "WAITING", failure = "FAILURE", chill = "CHILL";
     // private SimpleStringProperty status = new SimpleStringProperty();
     //private SimpleStringProperty bufferLevel = new SimpleStringProperty();
     private int currentTimeStep;
@@ -33,10 +33,22 @@ public class Robot {
         currentTimeStep = 0;
     }
 
+    private void think() {
+        if (nextRobotInLine == null) return;
+        if (nextRobotInLine.bufferIntLevel() >= nextRobotInLine.bufferCapacity) {
+            status = chill;
+        } else if (status.equals(chill)) {
+            status = ready;
+        }
+    }
+
     public String doTimeStep() {
         bufferLevel = inBufferQueue.size() + "/" + bufferCapacity;
         statusLog.add(new LogEntry(currentTimeStep, status, bufferLevel));
+        think();
         switch (status) {
+            case "CHILL":
+                break;
             case "FAILURE":
                 repair();
                 break;

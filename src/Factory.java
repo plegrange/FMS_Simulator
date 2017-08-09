@@ -84,7 +84,7 @@ private int numberOfRobots = 100;
         Random random;
         for(int i = 1; i <= numberOfRobots; i++){
             random = new Random();
-            robots.add(new Robot("RB"+i,20+random.nextInt(20),10+random.nextInt(10),0.05*random.nextDouble(),200+random.nextInt(200)));
+            robots.add(new Robot("RB"+i,10+random.nextInt(10),10+random.nextInt(10),0.05*random.nextDouble(),1000+random.nextInt(1000)));
         }
 
     }
