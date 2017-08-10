@@ -8,7 +8,7 @@ public class Cell {
     private int bufferCapacity;
     private Queue<Part> inBufferQueue;
     private Part partInProcessing;
-    protected String busy = "BUSY", ready = "READY", blocked = "BLOCKED", waiting = "WAITING", failure = "FAILURE", chill = "CHILL";
+    protected String busy = "BUSY", ready = "READY", blocked = "BLOCKED", waiting = "WAITING", failure = "FAILURE", chill = "CHILL", blaze = "BLAZE";
     // private SimpleStringProperty status = new SimpleStringProperty();
     //private SimpleStringProperty bufferLevel = new SimpleStringProperty();
     private int currentTimeStep;
@@ -17,7 +17,8 @@ public class Cell {
     private Cell nextCellInLine;
     private double failureRate;
     private int downTime = 0;
-    Brain brain = new Brain();
+    private Brain brain = new Brain();
+
     public Cell(String cellName, int bufferCapacity, int cycleTimeInSeconds, double failureRate, int meanRepairTime) {
         statusLog = new ArrayList<>();
         this.cellName = cellName;
@@ -37,21 +38,36 @@ public class Cell {
         return false;
     }
 
+    private double consumptionRate, bloackageProbability, waitingProbability;
+
     private void think() {
-        if (nextCellInLine == null) return;
-        if (nextCellInLine.bufferIntLevel() >= nextCellInLine.bufferCapacity) {
-            status = chill;
-        } else if (status.equals(chill)) {
-            status = ready;
+        String decision = brain.think(bufferIntLevel(), nextCellInLine.bufferIntLevel(), failureRate, consumptionRate, bloackageProbability, waitingProbability);
+        switch (decision) {
+            case "CONTINUE":
+                break;
+            case "CHILL":
+                status = chill;
+                break;
+            case "BLAZE":
+                status = blaze;
+                break;
+            default:
+                break;
         }
     }
+
+    int bufferTarget = bufferCapacity / 2;
 
     public String doTimeStep() {
         bufferLevel = inBufferQueue.size() + "/" + bufferCapacity;
         //statusLog.add(new LogEntry(currentTimeStep, status, bufferLevel));
-        //think();
+        think();
         switch (status) {
             case "CHILL":
+                bufferTarget = 0;
+                break;
+            case "BLAZE":
+                bufferTarget = nextCellInLine.bufferCapacity;
                 break;
             case "FAILURE":
                 repair();
@@ -131,7 +147,7 @@ public class Cell {
     }
 
     private void takePartFromBuffer() {
-        if (inBufferQueue.size() >= 1) {
+        if (inBufferQueue.size() >= 1 && nextCellInLine.bufferIntLevel() < nextCellInLine.bufferTarget) {
             partInProcessing = inBufferQueue.remove();
             bufferLevel = inBufferQueue.size() + "/" + bufferCapacity;
             status = busy;
