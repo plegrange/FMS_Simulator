@@ -1,11 +1,8 @@
-import javafx.beans.property.SimpleStringProperty;
-import javafx.css.SimpleStyleableStringProperty;
-
 import java.util.*;
 
-public class Robot {
+public class Cell {
     private List<LogEntry> statusLog;
-    private String robotName;
+    private String cellName;
     private String status;
     private String bufferLevel;
     private int bufferCapacity;
@@ -17,12 +14,13 @@ public class Robot {
     private int currentTimeStep;
     private int timeStepStartedOnPart;
     private int cycleTimeInSeconds;
-    private Robot nextRobotInLine;
+    private Cell nextCellInLine;
     private double failureRate;
-
-    public Robot(String robotName, int bufferCapacity, int cycleTimeInSeconds, double failureRate, int meanRepairTime) {
+    private int downTime = 0;
+    Brain brain = new Brain();
+    public Cell(String cellName, int bufferCapacity, int cycleTimeInSeconds, double failureRate, int meanRepairTime) {
         statusLog = new ArrayList<>();
-        this.robotName = robotName;
+        this.cellName = cellName;
         this.failureRate = failureRate;
         this.meanRepairTime = meanRepairTime;
         inBufferQueue = new LinkedList<>();
@@ -33,9 +31,15 @@ public class Robot {
         currentTimeStep = 0;
     }
 
+    public boolean queueEmpty() {
+        if (inBufferQueue.size() == 0)
+            return true;
+        return false;
+    }
+
     private void think() {
-        if (nextRobotInLine == null) return;
-        if (nextRobotInLine.bufferIntLevel() >= nextRobotInLine.bufferCapacity) {
+        if (nextCellInLine == null) return;
+        if (nextCellInLine.bufferIntLevel() >= nextCellInLine.bufferCapacity) {
             status = chill;
         } else if (status.equals(chill)) {
             status = ready;
@@ -44,8 +48,8 @@ public class Robot {
 
     public String doTimeStep() {
         bufferLevel = inBufferQueue.size() + "/" + bufferCapacity;
-        statusLog.add(new LogEntry(currentTimeStep, status, bufferLevel));
-        think();
+        //statusLog.add(new LogEntry(currentTimeStep, status, bufferLevel));
+        //think();
         switch (status) {
             case "CHILL":
                 break;
@@ -79,6 +83,7 @@ public class Robot {
     private void repair() {
         if (currentTimeStep - timeStepOfFailure >= meanRepairTime)
             status = busy;
+        else downTime++;
     }
 
     private void throwDice() {
@@ -95,20 +100,20 @@ public class Robot {
         // timeRemaining = cycleTimeInSeconds - (currentTimeStep - timeStepStartedOnPart);
     }
 
-    public void setNextRobotInLine(Robot nextRobotInLine) {
-        this.nextRobotInLine = nextRobotInLine;
+    public void setNextCellInLine(Cell nextCellInLine) {
+        this.nextCellInLine = nextCellInLine;
     }
 
     public int volume = 0;
 
     private void givePartToNextRobotInLine() {
-        if (nextRobotInLine == null) {
+        if (nextCellInLine == null) {
             partInProcessing = null;
             status = ready;
             volume++;
             return;
         }
-        partInProcessing = nextRobotInLine.receivePartIntoBuffer(partInProcessing);
+        partInProcessing = nextCellInLine.receivePartIntoBuffer(partInProcessing);
         if (partInProcessing == null) {
             status = ready;
             volume++;
@@ -152,18 +157,22 @@ public class Robot {
     }
 
     public void displayStatus() {
-        System.out.println(robotName + " " + status + " || BufferLevel: " + bufferLevel);
+        System.out.println(cellName + " " + status + " || BufferLevel: " + bufferLevel);
     }
 
     public List<LogEntry> getStatusLog() {
         return statusLog;
     }
 
-    public String getRobotName() {
-        return robotName;
+    public String getCellName() {
+        return cellName;
     }
 
     public int bufferIntLevel() {
         return inBufferQueue.size();
+    }
+
+    public int getDownTime() {
+        return downTime;
     }
 }
